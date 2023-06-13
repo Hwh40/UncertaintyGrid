@@ -17,6 +17,7 @@ void ping(int32_t trig)
   digitalWriteFast(trig, HIGH);
   delayMicroseconds(10);
   digitalWriteFast(trig, LOW);
+  
 }
 
 

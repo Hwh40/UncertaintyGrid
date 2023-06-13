@@ -8,11 +8,11 @@
 #include "Ultrasound.h"
 
 #define alpha 1
-#define DX 50
-#define DY 50
+#define DX 100
+#define DY 100
 #define DTHETA 1
-#define DR 50
-#define LENGTH 60
+#define DR 100
+#define LENGTH 80
 
 typedef struct {
   int32_t x;
@@ -26,9 +26,11 @@ int32_t TRIG = 3;
 int8_t flag = 0;
 uint32_t timeSent;
 uint32_t timeRec; 
+uint32_t pulseTime;
 uint32_t dist = 0;
 uint32_t distanceUS(void);
 void ultraHandler(void);
+
 
 //Uncertainty
 Position_t currentPos = {LENGTH / 2, LENGTH / 2, 0};
@@ -61,19 +63,21 @@ void setup() {
 
 void loop() {
   ping(TRIG);
+  pulseTime = GPT1_CNT;
 
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   currentPos.orientation = angle;
   angle = -1 *(orientationData.orientation.x) - initial + 90;
 
   if (flag == 1) {
-    uint32_t distance = distanceUS();
-    dist = 0.95 * dist + 0.05 * distance;
     setM(dist);
     flag = 0;
   }
 
   if (count % 20==0) {
+
+    Serial.print("Distance: \t");
+    Serial.println(dist);
     displayMap(Map);  
     count = 0;  
   }
@@ -131,6 +135,8 @@ void setM(uint32_t distance)
         y = dy ;
         if (x <= LENGTH - 1 && y <= LENGTH - 1) {
           Map[x][y]--;
+          Map[x][y]--;
+          Map[x][y]--;
         }
       }
     }
@@ -177,10 +183,10 @@ void initMap(int32_t arr[LENGTH][LENGTH])
 uint32_t distanceUS(void)
 {
   uint32_t tof = 0;
-  if (timeSent < timeRec) {
+  if (timeSent < timeRec || pulseTime < timeRec) {
     tof = (timeRec - timeSent);
   } 
-  if ((tof) > 4000) {
+  if ((tof) > 4000 || pulseTime > timeRec) {
     tof = 4000;
   }
   return tof;
@@ -188,12 +194,12 @@ uint32_t distanceUS(void)
 
 void ultraHandler(void)
 {
-  if (flag == 0) {
-    if (digitalReadFast(ECHO)) {
-      timeSent = GPT1_CNT;
-    } else{
-      timeRec = GPT1_CNT;
-      flag = 1;
-    }
+  if (digitalReadFast(ECHO)) {
+    timeSent = GPT1_CNT;
+  } else{
+    timeRec = GPT1_CNT;
+    dist = distanceUS();
+    flag = 1;
+
   }
 }
